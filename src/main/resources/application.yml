@@ -1,0 +1,23 @@
+spring:
+  datasource:
+#    url: jdbc:postgresql://irctc2.postgres.database.azure.com:5432/postgres
+    url: jdbc:postgresql://localhost:5432/irctc_db
+#    username: Anki_13
+    username: postgres
+    password: Irctc_2.0
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format-sql: true
+  logging:
+    level:
+      org.hibernate.SQL: DEBUG
+      org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+jwt:
+  secret: b5c3d8b1e1a7324d99e87a4ebf03fdd8a6d3c987ee5a8f2c51fdb6b89e7fd42a
+  expiration-ms: 86400000 # Token validity: 1 day
