@@ -1,10 +1,14 @@
 spring:
   datasource:
 #    url: jdbc:postgresql://irctc2.postgres.database.azure.com:5432/postgres
-    url: jdbc:postgresql://localhost:5432/irctc_db
-#    username: Anki_13
-    username: postgres
+    url: jdbc:postgresql://irctc.postgres.database.azure.com:5432/postgres
+    username: Anki_13
     password: Irctc_2.0
+
+#    LOCAL
+#    url: jdbc:postgresql://localhost:5432/irctc_db
+#    username: postgres
+#    password: Irctc_2.0
 
   jpa:
     hibernate:
