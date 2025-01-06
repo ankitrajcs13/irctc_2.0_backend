@@ -4,8 +4,8 @@ spring:
     url: jdbc:postgresql://pgdbs.postgres.database.azure.com:5432/postgres
 #    Student
 #    url: jdbc:postgresql://irctc.postgres.database.azure.com:5432/postgres
-    username: Anki_13
-    password: Irctc_2.0
+    username: expowhiz
+    password: Demo@admin
 
 #    LOCAL
 #    url: jdbc:postgresql://localhost:5432/irctc_db
