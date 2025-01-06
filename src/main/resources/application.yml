@@ -1,7 +1,9 @@
 spring:
   datasource:
-#    url: jdbc:postgresql://irctc2.postgres.database.azure.com:5432/postgres
-    url: jdbc:postgresql://irctc.postgres.database.azure.com:5432/postgres
+#    MLSA
+    url: jdbc:postgresql://pgdbs.postgres.database.azure.com:5432/postgres
+#    Student
+#    url: jdbc:postgresql://irctc.postgres.database.azure.com:5432/postgres
     username: Anki_13
     password: Irctc_2.0
 
