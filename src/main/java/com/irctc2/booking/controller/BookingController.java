@@ -1,6 +1,7 @@
 package com.irctc2.booking.controller;
 
 import com.irctc2.booking.dto.BookingDTO;
+import com.irctc2.booking.dto.BookingResponseDTO;
 import com.irctc2.booking.dto.CreateBookingRequest;
 import com.irctc2.booking.model.Booking;
 import com.irctc2.booking.service.BookingService;
@@ -24,8 +25,17 @@ public class BookingController {
     private JwtTokenProvider jwtTokenProvider;
 
     @PostMapping
-    public ResponseEntity<Booking> createBooking(@RequestBody CreateBookingRequest request) {
-        Booking booking = bookingService.createBooking(request);
+    public ResponseEntity<BookingResponseDTO> createBooking(@RequestBody CreateBookingRequest request,
+                                                            @RequestHeader("Authorization") String token) {
+
+        // Extract email from token
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+
+        // TODO -> HANDLE HOW ADMIN CAN DO BOOKINGS USING ROLE FROM TOKEN
+        String email = jwtTokenProvider.getUsernameFromToken(token);
+        BookingResponseDTO booking = bookingService.createBooking(request, email);
         return ResponseEntity.status(HttpStatus.CREATED).body(booking);
     }
 

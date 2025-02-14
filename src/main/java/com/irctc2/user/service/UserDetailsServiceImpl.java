@@ -22,7 +22,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         return org.springframework.security.core.userdetails.User.builder()
                 .username(user.getEmail())
                 .password(user.getPassword()) // Password is already encoded
-                .authorities("USER") // Set default authority/role
+                .authorities(user.getRole()) // Set default authority/role
                 .build();
     }
 }

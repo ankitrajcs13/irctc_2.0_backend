@@ -3,6 +3,7 @@ package com.irctc2.train.service;
 import com.irctc2.booking.model.Booking;
 import com.irctc2.route.repository.RouteRepository;
 import com.irctc2.route.service.RouteService;
+import com.irctc2.train.dto.AllocatedSeat;
 import com.irctc2.train.dto.TrainDTO;
 import com.irctc2.train.entity.BogieType;
 import com.irctc2.train.model.Bogie;
@@ -28,7 +29,7 @@ public class TrainService {
     public List<TrainDTO> getAllTrains() {
         List<Train> trains = trainRepository.findAll();
         return trains.stream()
-                .map(TrainMapper::toDTO) // Convert each Train entity to TrainDTO
+                .map(TrainMapper1::toDTO) // Convert each Train entity to TrainDTO
                 .collect(Collectors.toList());
     }
 
@@ -137,12 +138,13 @@ public class TrainService {
         }
     }
 
-    public List<String> allocateSeats(String trainNumber, LocalDate travelDate, String bogieType, int passengerCount) {
+    public List<AllocatedSeat> allocateSeats(String trainNumber, LocalDate travelDate, String bogieType, int passengerCount) {
         // Fetch the train by train number
         Train train = trainRepository.findByTrainNumber(trainNumber)
                 .orElseThrow(() -> new IllegalArgumentException("Train with number " + trainNumber + " does not exist."));
 
-        List<String> allocatedSeats = new ArrayList<>();
+        // Use a list of AllocatedSeat objects instead of Strings
+        List<AllocatedSeat> allocatedSeats = new ArrayList<>();
 
         // Filter bogies by the specified type
         List<Bogie> matchingBogies = train.getBogies().stream()
@@ -157,8 +159,13 @@ public class TrainService {
         for (Bogie bogie : matchingBogies) {
             for (Map.Entry<Integer, Boolean> entry : bogie.getSeatAvailability().entrySet()) {
                 if (entry.getValue() && allocatedSeats.size() < passengerCount) {
-                    String seatIdentifier = bogie.getBogieName() + "-" + entry.getKey(); // Format as <BogieName>-<SeatNumber>
-                    allocatedSeats.add(seatIdentifier); // Allocate seat
+                    //String seatIdentifier = bogie.getBogieName() + "-" + entry.getKey(); // Format as <BogieName>-<SeatNumber>
+                    AllocatedSeat allocatedSeat = new AllocatedSeat(
+                            bogie.getId(),
+                            bogie.getBogieName(),
+                            entry.getKey()  // seat number
+                    );
+                    allocatedSeats.add(allocatedSeat); // Allocate seat
                     bogie.addSeatAvailability(entry.getKey(), false); // Mark seat as unavailable
                 }
 

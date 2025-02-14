@@ -4,9 +4,12 @@ import com.irctc2.booking.entity.BookingStatus;
 import com.irctc2.user.model.User;
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,6 +41,20 @@ public class Booking {
 
     @Column(nullable = false)
     private String bogieType; // New field to store bogie type
+
+    @Column(name = "source_station", nullable = false, columnDefinition = "VARCHAR(255) DEFAULT 'UNKNOWN'")
+    private String sourceStation;
+
+    @Column(name = "destination_station", nullable = false, columnDefinition = "VARCHAR(255) DEFAULT 'UNKNOWN'")
+    private String destinationStation;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Passenger> passengers = new ArrayList<>();

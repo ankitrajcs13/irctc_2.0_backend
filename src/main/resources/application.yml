@@ -1,11 +1,19 @@
 spring:
   datasource:
-#    MLSA
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout : 300000
+      max-lifetime : 1800000
+      connection-timeout: 20000
+
     url: jdbc:postgresql://pgdbs.postgres.database.azure.com:5432/postgres
-#    Student
-#    url: jdbc:postgresql://irctc.postgres.database.azure.com:5432/postgres
     username: expowhiz
     password: Demo@admin
+
+#    Student
+#    url: jdbc:postgresql://irctc.postgres.database.azure.com:5432/postgres
+
 
 #    LOCAL
 #    url: jdbc:postgresql://localhost:5432/irctc_db
@@ -26,4 +34,5 @@ spring:
 
 jwt:
   secret: b5c3d8b1e1a7324d99e87a4ebf03fdd8a6d3c987ee5a8f2c51fdb6b89e7fd42a
-  expiration-ms: 86400000 # Token validity: 1 day
+  expiration-ms: 2592000000 # Token validity: 30 days (1 month)
+

@@ -1,8 +1,6 @@
 package com.irctc2.booking.service;
 
-import com.irctc2.booking.dto.BookingDTO;
-import com.irctc2.booking.dto.CreateBookingRequest;
-import com.irctc2.booking.dto.PassengerDTO;
+import com.irctc2.booking.dto.*;
 import com.irctc2.booking.mapper.BookingMapper;
 import com.irctc2.booking.model.Booking;
 import com.irctc2.booking.entity.BookingStatus;
@@ -10,19 +8,22 @@ import com.irctc2.booking.model.Passenger;
 import com.irctc2.booking.repository.BookingRepository;
 import com.irctc2.booking.repository.PassengerRepository;
 import com.irctc2.route.model.Route;
+import com.irctc2.route.model.RouteStation;
 import com.irctc2.route.repository.RouteRepository;
+import com.irctc2.train.dto.AllocatedSeat;
+import com.irctc2.train.model.SeatAvailability;
+import com.irctc2.train.repository.SeatAvailabilityRepository;
+import com.irctc2.train.service.SeatBookingService;
 import com.irctc2.train.service.TrainMapper;
 import com.irctc2.train.service.TrainService;
 import com.irctc2.user.model.User;
 import com.irctc2.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,11 +41,17 @@ public class BookingService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private SeatAvailabilityRepository seatAvailabilityRepository;
 
     @Autowired
     private TrainService trainService; // Service to manage Train & Seat availability.
 
-    public Booking createBooking(CreateBookingRequest request) {
+    @Autowired
+    private SeatBookingService seatAvailabilityService; // Service to manage Train & Seat availability.
+
+    @Transactional
+    public BookingResponseDTO createBooking(CreateBookingRequest request, String email) {
         // Fetch the route for the given train number
         Route route = routeRepository.findByTrainNumber(request.getTrainNumber())
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -55,46 +62,83 @@ public class BookingService {
         // Validate train and route
         trainService.validateTrainAndRoute(request.getTrainNumber(), routeId);
 
+        // Determine the segment range using station orders.
+        // (Assuming your route stations include the source and destination names)
+        int startSegment = -1;
+        int endSegment = -1;
+        // Iterate through the route's station list.
+        for (RouteStation rs : route.getStations()) {
+            // Compare station names (ignoring case).
+            if (rs.getStation().getName().equalsIgnoreCase(request.getSourceStation())) {
+                startSegment = rs.getStationOrder();
+            }
+            if (rs.getStation().getName().equalsIgnoreCase(request.getDestinationStation())) {
+                endSegment = rs.getStationOrder();
+            }
+        }
+
+        // Validate that both stations were found and that the source comes before the destination.
+        if (startSegment == -1 || endSegment == -1 || startSegment >= endSegment) {
+            throw new IllegalArgumentException("Invalid source or destination station provided.");
+        }
+
+        String bookingReference = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+
         // Check seat availability
         int totalPassengers = request.getPassengers().size();
-        List<String> allocatedSeats = trainService.allocateSeats(request.getTrainNumber(), request.getTravelDate(),request.getBogieType(), totalPassengers);
-
-        if (allocatedSeats.isEmpty() || allocatedSeats.size() < totalPassengers) {
-            throw new RuntimeException("Not enough seats available.");
-        }
+        List<SeatAvailability> allocatedSeats = seatAvailabilityService.allocateSeatsForSegment(
+                request.getTrainNumber(),      // train number
+                request.getTravelDate(),       // travel date
+                request.getBogieType(),        // bogie type
+                request.getPassengers().size(),// number of passengers
+                startSegment,                  // start segment index
+                endSegment,                    // end segment index
+                bookingReference               // booking reference for logging/tracking
+        );
 
         // Calculate fare
         BigDecimal totalFare = calculateFare(totalPassengers, request.getRouteId());
 
-        User user = userRepository.findByEmail(request.getEmail())
+        User user = userRepository.findByEmail(email) // TODO - We need to fetch user details from token or somewhere
                 .orElseThrow(() -> new RuntimeException("User not found"));
         // Create booking
         Booking booking = new Booking();
-        booking.setPnr(UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+        booking.setPnr(bookingReference);
         booking.setTrainNumber(request.getTrainNumber());
-        booking.setRouteId(routeId);
         booking.setTravelDate(request.getTravelDate());
-        booking.setTotalFare(totalFare);
+        booking.setRouteId(route.getId());
         booking.setStatus(BookingStatus.CONFIRMED);
-        booking.setUser(user);
         booking.setBogieType(request.getBogieType());
-        bookingRepository.save(booking);
+        booking.setTotalFare(totalFare);
+        booking.setUser(user);
+        booking.setSourceStation(request.getSourceStation());
+        booking.setDestinationStation(request.getDestinationStation());
+        // (Set any additional booking properties as needed.)
 
-        // Save passengers
-        List<Passenger> passengers = request.getPassengers().stream()
-                .map(p -> {
-                    Passenger passenger = new Passenger();
-                    passenger.setName(p.getName());
-                    passenger.setAge(p.getAge());
-                    passenger.setGender(p.getGender());
-                    passenger.setSeatNumber(allocatedSeats.remove(0));
-                    passenger.setBooking(booking);
-                    return passenger;
-                })
-                .collect(Collectors.toList());
+        // 6. Create passenger records and assign allocated seats.
+        List<Passenger> passengers = new ArrayList<>();
+        List<PassengerRequest> passengerRequests = request.getPassengers();
+        for (int i = 0; i < passengerRequests.size(); i++) {
+            PassengerRequest pr = passengerRequests.get(i);
+            // Get the allocated seat for this passenger.
+            SeatAvailability seat = allocatedSeats.get(i);
+            Passenger passenger = new Passenger();
+            passenger.setName(pr.getName());
+            passenger.setAge(pr.getAge());
+            passenger.setGender(pr.getGender());
+            // Create a formatted seat identifier, e.g., "BogieName-SeatNumber".
+            passenger.setSeatNumber(seat.getBogieName() + "-" + seat.getSeatNumber());
+            passenger.setBooking(booking);
+            passengers.add(passenger);
+        }
+        booking.setPassengers(passengers);
+
+        // 7. Persist the booking and passenger details.
+        bookingRepository.save(booking);
         passengerRepository.saveAll(passengers);
 
-        return booking;
+        // Directly return BookingResponseDTO
+        return BookingMapper.toResponseDTO(booking);
     }
 
     private BigDecimal calculateFare(int totalPassengers, String routeId) {
@@ -114,7 +158,8 @@ public class BookingService {
         return new BookingDTO(booking.getId(), booking.getPnr(),booking.getTrainNumber(),
                 booking.getTravelDate(),
                 booking.getTotalFare(),
-                booking.getStatus(), booking.getBogieType(), passengerDTOs);
+                booking.getStatus(), booking.getBogieType(),booking.getSourceStation(), booking.getDestinationStation(),
+                passengerDTOs);
     }
 
     public BookingDTO getBookingByPnr(String pnr) {
