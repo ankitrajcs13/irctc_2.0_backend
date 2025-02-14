@@ -53,6 +53,9 @@ public class SecurityConfig {
                 .and()
                 .authorizeRequests()
                 .requestMatchers("/api/auth/login", "/api/users/register").permitAll() // Public endpoints
+                .requestMatchers("/api/trains").hasAuthority("ADMIN")
+                .requestMatchers("/api/passenger/**").hasAuthority("ROLE_PASSENGER")
+                .requestMatchers("/api/developer/**").hasAuthority("ROLE_DEVELOPER")
                 .anyRequest().authenticated() // Secure all other endpoints
                 .and()
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // JWT filter

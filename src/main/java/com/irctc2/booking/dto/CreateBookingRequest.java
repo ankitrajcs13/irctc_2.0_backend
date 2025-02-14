@@ -8,10 +8,11 @@ import java.util.List;
 
 @Data
 public class CreateBookingRequest {
-    private String email;
     private String trainNumber;      // Train number for the booking
     private String routeId;           // ID of the route
     private LocalDate travelDate;   // Travel date
     private String bogieType;
+    private String sourceStation;
+    private String destinationStation;
     private List<PassengerRequest> passengers; // List of passengers in the booking
 }

@@ -19,7 +19,7 @@ public class TrainController {
     private TrainService trainService;
 
     // API for fetching all trains
-    @GetMapping
+    @GetMapping("/fetch-all-trains")
     public ResponseEntity<List<TrainDTO>> getAllTrains() {
         List<TrainDTO> trains = trainService.getAllTrains();
         return ResponseEntity.ok(trains);
