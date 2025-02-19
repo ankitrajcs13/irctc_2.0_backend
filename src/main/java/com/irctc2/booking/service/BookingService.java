@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -97,9 +98,16 @@ public class BookingService {
         );
 
         // Calculate fare
-        BigDecimal totalFare = calculateFare(totalPassengers, request.getRouteId());
+        BigDecimal totalFare = calculateFare(
+                totalPassengers,
+                request.getTrainNumber(),
+                request.getSourceStation(),
+                request.getDestinationStation(),
+                request.getBogieType(),
+                false
+        );
 
-        User user = userRepository.findByEmail(email) // TODO - We need to fetch user details from token or somewhere
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         // Create booking
         Booking booking = new Booking();
@@ -141,26 +149,107 @@ public class BookingService {
         return BookingMapper.toResponseDTO(booking);
     }
 
-    private BigDecimal calculateFare(int totalPassengers, String routeId) {
-        // Implement fare calculation logic based on distance and class
-        BigDecimal perPassengerFare = BigDecimal.valueOf(500); // Placeholder logic
+    private BigDecimal calculateFare(int totalPassengers, String trainNumber, String sourceStation, String destinationStation, String bogieType, boolean isTatkal) {
+        // Fetch the route to get station details
+        Route route = routeRepository.findByTrainNumber(trainNumber)
+                .orElseThrow(() -> new IllegalArgumentException("No route found for train number: " + trainNumber));
+
+        // Variables to store segment positions and total distance
+        int startSegment = -1, endSegment = -1;
+        double distance = 0.0;
+
+        for (RouteStation rs : route.getStations()) {
+            if (rs.getStation().getName().equalsIgnoreCase(sourceStation)) {
+                startSegment = rs.getStationOrder();
+            }
+            if (rs.getStation().getName().equalsIgnoreCase(destinationStation)) {
+                endSegment = rs.getStationOrder();
+            }
+        }
+
+        if (startSegment == -1 || endSegment == -1 || startSegment >= endSegment) {
+            throw new IllegalArgumentException("Invalid source or destination station provided.");
+        }
+
+        // Fetch the distance from the database
+        int finalEndSegment = endSegment;
+        distance = route.getStations().stream()
+                .filter(rs -> rs.getStationOrder() == finalEndSegment)
+                .findFirst()
+                .map(rs -> rs.getDistance().replaceAll("[^0-9.]", "")) // Remove non-numeric characters
+                .map(Double::parseDouble)
+                .orElseThrow(() -> new IllegalArgumentException("Distance information not available"));
+
+
+        // Base Fare per km for each class
+        Map<String, Double> baseFarePerKm = Map.of(
+                "SLEEPER", 0.40,
+                "THIRD_AC", 1.00,
+                "SECOND_AC", 1.50,
+                "FIRST_AC", 2.50
+        );
+        bogieType = bogieType.trim().toUpperCase();
+        // Get base fare rate for the class
+        Double baseFareRate = baseFarePerKm.getOrDefault(bogieType, 0.0);
+        BigDecimal baseFare = BigDecimal.valueOf(baseFareRate * distance);
+
+        // Reservation Charges per class
+        Map<String, Integer> reservationCharges = Map.of(
+                "SLEEPER", 20,
+                "THIRD_AC", 40,
+                "SECOND_AC", 50,
+                "FIRST_AC", 60
+        );
+
+        int reservationCharge = reservationCharges.getOrDefault(bogieType, 0);
+
+        // Superfast Charge if distance > 200 km
+        int superfastCharge = (distance > 200) ? 30 : 0;
+
+        // GST (Only for AC classes)
+        double gstRate = (bogieType.equalsIgnoreCase("THIRD_AC") ||
+                bogieType.equalsIgnoreCase("SECOND_AC") ||
+                bogieType.equalsIgnoreCase("FIRST_AC")) ? 0.05 : 0.0;
+        BigDecimal gst = baseFare.multiply(BigDecimal.valueOf(gstRate));
+
+        // Tatkal Markup (If applicable)
+        BigDecimal tatkalMarkup = BigDecimal.ZERO;
+        if (isTatkal) {
+            Map<String, Integer> tatkalCharges = Map.of(
+                    "SL", 100,
+                    "3AC", 300,
+                    "2A", 400,
+                    "1A", 500
+            );
+            tatkalMarkup = BigDecimal.valueOf(tatkalCharges.getOrDefault(bogieType, 0));
+        }
+
+        // Total fare per passenger
+        BigDecimal perPassengerFare = baseFare.add(BigDecimal.valueOf(reservationCharge))
+                .add(BigDecimal.valueOf(superfastCharge))
+                .add(gst)
+                .add(tatkalMarkup)
+                .setScale(0, RoundingMode.HALF_UP);
+
+        // Total fare for all passengers
         return perPassengerFare.multiply(BigDecimal.valueOf(totalPassengers));
     }
 
-    public BookingDTO getBooking(Long bookingId) {
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new RuntimeException("Booking not found"));
 
-        List<PassengerDTO> passengerDTOs = booking.getPassengers().stream()
-                .map(p -> new PassengerDTO(p.getId(), p.getName(), p.getAge(), p.getSeatNumber(), p.getGender()))
-                .collect(Collectors.toList());
-
-        return new BookingDTO(booking.getId(), booking.getPnr(),booking.getTrainNumber(),
-                booking.getTravelDate(),
-                booking.getTotalFare(),
-                booking.getStatus(), booking.getBogieType(),booking.getSourceStation(), booking.getDestinationStation(),
-                passengerDTOs);
-    }
+//    public BookingDTO getBooking(Long bookingId) {
+//        Booking booking = bookingRepository.findById(bookingId)
+//                .orElseThrow(() -> new RuntimeException("Booking not found"));
+//
+//        List<PassengerDTO> passengerDTOs = booking.getPassengers().stream()
+//                .map(p -> new PassengerDTO(p.getId(), p.getName(), p.getAge(), p.getSeatNumber(), p.getGender()))
+//                .collect(Collectors.toList());
+//
+//        return new BookingDTO(booking.getId(), booking.getPnr(),booking.getTrainNumber(),
+//                booking.getTravelDate(),
+//                booking.getTotalFare(),
+//                booking.getStatus(), booking.getBogieType(),booking.getSourceStation(), booking.getDestinationStation(),
+//                passengerDTOs);
+//    }
 
     public BookingDTO getBookingByPnr(String pnr) {
         Booking booking = bookingRepository.findByPnr(pnr)
@@ -190,7 +279,7 @@ public class BookingService {
 
         // Convert to DTOs for response
         return bookings.stream()
-                .map(BookingMapper::convertToBookingDTO)
+                .map(booking -> BookingMapper.convertToBookingDTO(booking, routeRepository))
                 .collect(Collectors.toList());
     }
 

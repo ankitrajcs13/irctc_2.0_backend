@@ -15,6 +15,8 @@ import com.irctc2.train.service.TrainService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -134,7 +136,16 @@ public class RouteService {
         if (travelDate != null) {
             Map<String, Integer>  availableSeatsByBogieType = getAvailableSeats(route.getTrain().getId(), travelDate, startSegment, endSegment);
             routeDTO.setTravelDate(travelDate);
-            routeDTO.setAvailableSeats(availableSeatsByBogieType);
+
+            Map<String, Map<String, Object>> availableSeatsWithFare = new HashMap<>();
+            for (String bogieType : availableSeatsByBogieType.keySet()) {
+                BigDecimal fare = calculateFare(route.getTrain().getTrainNumber(), sourceStation, destinationStation, bogieType, false);
+                Map<String, Object> seatAndFareInfo = new HashMap<>();
+                seatAndFareInfo.put("availableSeats", availableSeatsByBogieType.get(bogieType));
+                seatAndFareInfo.put("fare", fare);
+                availableSeatsWithFare.put(bogieType, seatAndFareInfo);
+            }
+            routeDTO.setAvailableSeatsWithFare(availableSeatsWithFare);
         }
 
         return routeDTO;
@@ -201,5 +212,86 @@ public class RouteService {
         return durationStr.toString().trim();
     }
 
+    private BigDecimal calculateFare(String trainNumber, String sourceStation, String destinationStation, String bogieType, boolean isTatkal) {
+        // Fetch the route to get station details
+        Route route = routeRepository.findByTrainNumber(trainNumber)
+                .orElseThrow(() -> new IllegalArgumentException("No route found for train number: " + trainNumber));
+
+        // Variables to store segment positions and total distance
+        int startSegment = -1, endSegment = -1;
+        double distance = 0.0;
+
+        for (RouteStation rs : route.getStations()) {
+            if (rs.getStation().getName().equalsIgnoreCase(sourceStation)) {
+                startSegment = rs.getStationOrder();
+            }
+            if (rs.getStation().getName().equalsIgnoreCase(destinationStation)) {
+                endSegment = rs.getStationOrder();
+            }
+        }
+
+        if (startSegment == -1 || endSegment == -1 || startSegment >= endSegment) {
+            throw new IllegalArgumentException("Invalid source or destination station provided.");
+        }
+
+        // Fetch the distance from the database
+        int finalEndSegment = endSegment;
+        distance = route.getStations().stream()
+                .filter(rs -> rs.getStationOrder() == finalEndSegment)
+                .findFirst()
+                .map(rs -> rs.getDistance().replaceAll("[^0-9.]", "")) // Remove non-numeric characters
+                .map(Double::parseDouble)
+                .orElseThrow(() -> new IllegalArgumentException("Distance information not available"));
+
+
+        // Base Fare per km for each class
+        Map<String, Double> baseFarePerKm = Map.of(
+                "SLEEPER", 0.40,
+                "THIRD_AC", 1.00,
+                "SECOND_AC", 1.50,
+                "FIRST_AC", 2.50
+        );
+        bogieType = bogieType.trim().toUpperCase();
+        // Get base fare rate for the class
+        Double baseFareRate = baseFarePerKm.getOrDefault(bogieType, 0.0);
+        BigDecimal baseFare = BigDecimal.valueOf(baseFareRate * distance);
+
+        // Reservation Charges per class
+        Map<String, Integer> reservationCharges = Map.of(
+                "SLEEPER", 20,
+                "THIRD_AC", 40,
+                "SECOND_AC", 50,
+                "FIRST_AC", 60
+        );
+
+        int reservationCharge = reservationCharges.getOrDefault(bogieType, 0);
+
+        // Superfast Charge if distance > 200 km
+        int superfastCharge = (distance > 200) ? 30 : 0;
+
+        // GST (Only for AC classes)
+        double gstRate = (bogieType.equalsIgnoreCase("THIRD_AC") ||
+                bogieType.equalsIgnoreCase("SECOND_AC") ||
+                bogieType.equalsIgnoreCase("FIRST_AC")) ? 0.05 : 0.0;
+        BigDecimal gst = baseFare.multiply(BigDecimal.valueOf(gstRate));
+
+        // Tatkal Markup (If applicable)
+        BigDecimal tatkalMarkup = BigDecimal.ZERO;
+        if (isTatkal) {
+            Map<String, Integer> tatkalCharges = Map.of(
+                    "SL", 100,
+                    "3AC", 300,
+                    "2A", 400,
+                    "1A", 500
+            );
+            tatkalMarkup = BigDecimal.valueOf(tatkalCharges.getOrDefault(bogieType, 0));
+        }
+
+        return baseFare.add(BigDecimal.valueOf(reservationCharge))
+                .add(BigDecimal.valueOf(superfastCharge))
+                .add(gst)
+                .add(tatkalMarkup)
+                .setScale(0, RoundingMode.HALF_UP);
+    }
 
 }

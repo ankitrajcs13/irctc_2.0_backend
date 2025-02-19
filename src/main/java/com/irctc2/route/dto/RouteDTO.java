@@ -3,6 +3,7 @@ package com.irctc2.route.dto;
 import com.irctc2.route.dto.RouteStationDTO;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -18,6 +19,6 @@ public class RouteDTO {
     private LocalDateTime arrivalTime;
     private String travelTime;
     private List<RouteStationDTO> stations;
-    private Map<String, Integer> availableSeats;
+    private Map<String, Map<String, Object>> availableSeatsWithFare;
     private LocalDate travelDate;
 }
