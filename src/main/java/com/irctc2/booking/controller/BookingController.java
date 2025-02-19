@@ -5,7 +5,9 @@ import com.irctc2.booking.dto.BookingResponseDTO;
 import com.irctc2.booking.dto.CreateBookingRequest;
 import com.irctc2.booking.model.Booking;
 import com.irctc2.booking.service.BookingService;
+import com.irctc2.booking.service.BookingServiceCron;
 import com.irctc2.security.jwt.JwtTokenProvider;
+import com.irctc2.train.service.DiscordNotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +24,13 @@ public class BookingController {
     private BookingService bookingService;
 
     @Autowired
+    private BookingServiceCron bookingServiceCron;
+
+    @Autowired
     private JwtTokenProvider jwtTokenProvider;
+
+    @Autowired
+    private DiscordNotificationService discordNotificationService;
 
     @PostMapping
     public ResponseEntity<BookingResponseDTO> createBooking(@RequestBody CreateBookingRequest request,
@@ -36,6 +44,18 @@ public class BookingController {
         // TODO -> HANDLE HOW ADMIN CAN DO BOOKINGS USING ROLE FROM TOKEN
         String email = jwtTokenProvider.getUsernameFromToken(token);
         BookingResponseDTO booking = bookingService.createBooking(request, email);
+
+        // TODO -> Currently we are only sending 1 passenger to webhook
+        String discordMessage = String.format(
+                "**🎟️ Booking Confirmed!**\n" + "**PNR:** %s\n" + "**Train Number:** %s\n" + "**Travel Date:** %s\n" + "**Source:** %s\n" + "**Destination:** %s\n" +
+                        "**Bogie Type:** %s\n" + "**Total Fare:** ₹%s\n" + "**Booking Status:** ✅ %s\n\n" + "**👥 Passenger Details:**\n" +
+                        "\t🆔 ID: %d\n" + "\t👤 Name: %s\n" + "\t🎂 Age: %d\n" + "\t🚻 Gender: %s\n" + "\t💺 Seat Number: %s",
+                booking.getPnr(),booking.getTrainNumber(),booking.getTravelDate(),booking.getSourceStation(),booking.getDestinationStation(),
+                booking.getBogieType(), booking.getTotalFare(), booking.getBookingStatus(), booking.getPassengers().getFirst().getId(), booking.getPassengers().getFirst().getName(),
+                booking.getPassengers().getFirst().getAge(), booking.getPassengers().getFirst().getGender(), booking.getPassengers().getFirst().getSeatNumber()
+        );
+
+        discordNotificationService.sendDiscordMessage(discordMessage);
         return ResponseEntity.status(HttpStatus.CREATED).body(booking);
     }
 
@@ -72,5 +92,11 @@ public class BookingController {
     public ResponseEntity<BookingDTO> cancelBooking(@PathVariable String pnr) {
         BookingDTO canceledBooking = bookingService.cancelBooking(pnr);
         return ResponseEntity.ok(canceledBooking);
+    }
+
+    @PostMapping("/expire/manual")
+    public String manuallyExpireBookings() {
+        bookingServiceCron.processExpiredBookings();
+        return "Expired bookings processed manually!";
     }
 }

@@ -1,6 +1,6 @@
 package com.irctc2.train.service;
 
-
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -20,14 +20,23 @@ public class PartitionMaintenanceService {
     public PartitionMaintenanceService(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
-
+    @Autowired
+    private DiscordNotificationService discordNotificationService;
     /**
      * Run this method every day at 2:00 AM.
      */
-    @Scheduled(cron = "00 48 10 * * ?", zone = "Asia/Kolkata")
+    @Scheduled(cron = "30 32 18 * * ?", zone = "Asia/Kolkata")
     public void maintainPartitions() {
         LocalDate today = LocalDate.now();
         LocalDate windowEnd = today.plusDays(60);
+        LocalDate currentDate = LocalDate.now(); // For current date only
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd"); // Desired date format
+        String formattedDate = currentDate.format(formatter);
+
+        // Create message including the current date
+        String message = "Cron job for partitioning and seeding data started successfully on " + formattedDate + ".";
+
+        discordNotificationService.sendDiscordMessage(message);
 
         // Compute the next aligned partition strt date based on the anchor date.
         long daysSinceAnchor = ChronoUnit.DAYS.between(ANCHOR_DATE, today);

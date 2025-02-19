@@ -23,7 +23,12 @@ public class BookingDTO {
     private BookingStatus status;
     private String bogieType;
     private String sourceStation;
+    private String sourceArrivalTime;
+    private String sourceDepartureTime;
+    private String destinationArrivalTime;
+    private String destinationDepartureTime;
     private String destinationStation;
+    private String travelDuration;
     private List<PassengerDTO> passengers;
 
     // Getters, setters, and constructor
