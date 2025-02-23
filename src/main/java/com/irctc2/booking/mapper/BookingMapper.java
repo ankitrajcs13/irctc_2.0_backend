@@ -105,6 +105,7 @@ public class BookingMapper {
                 .id(booking.getId())
                 .pnr(booking.getPnr())
                 .trainNumber(booking.getTrainNumber())
+//                .trainName(booking.gettran)
                 .travelDate(booking.getTravelDate())
                 .totalFare(booking.getTotalFare())
                 .status(booking.getStatus())

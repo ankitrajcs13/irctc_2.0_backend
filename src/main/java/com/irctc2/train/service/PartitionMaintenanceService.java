@@ -25,7 +25,7 @@ public class PartitionMaintenanceService {
     /**
      * Run this method every day at 2:00 AM.
      */
-    @Scheduled(cron = "30 32 18 * * ?", zone = "Asia/Kolkata")
+    @Scheduled(cron = "0 0 5 * * ?", zone = "Asia/Kolkata")
     public void maintainPartitions() {
         LocalDate today = LocalDate.now();
         LocalDate windowEnd = today.plusDays(60);

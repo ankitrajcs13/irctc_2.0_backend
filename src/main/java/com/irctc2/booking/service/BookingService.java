@@ -10,11 +10,9 @@ import com.irctc2.booking.repository.PassengerRepository;
 import com.irctc2.route.model.Route;
 import com.irctc2.route.model.RouteStation;
 import com.irctc2.route.repository.RouteRepository;
-import com.irctc2.train.dto.AllocatedSeat;
 import com.irctc2.train.model.SeatAvailability;
 import com.irctc2.train.repository.SeatAvailabilityRepository;
 import com.irctc2.train.service.SeatBookingService;
-import com.irctc2.train.service.TrainMapper;
 import com.irctc2.train.service.TrainService;
 import com.irctc2.user.model.User;
 import com.irctc2.user.repository.UserRepository;
@@ -275,7 +273,7 @@ public class BookingService {
 
     public List<BookingDTO> getBookingsForAuthenticatedUser(String email) {
         // Fetch all bookings associated with the given email
-        List<Booking> bookings = bookingRepository.findByUser_Email(email);
+        List<Booking> bookings = bookingRepository.findByUser_EmailOrderByIdDesc(email);
 
         // Convert to DTOs for response
         return bookings.stream()

@@ -88,20 +88,32 @@ public class RouteService {
 
         List<Route> routes;
         if (travelDate != null) {
-            // Filter routes by travelDate
-            routes = routeRepository.findTrainsBetweenStationsOnDate(sourceStation, destinationStation, travelDate);
+            // TODO : Optimize this getTravelDayForStation function->
+            LocalDate calculatedTrainStartDate = travelDate.minusDays(getTravelDayForStation(sourceStation)-1);
+            routes = routeRepository.findTrainsBetweenStationsOnDate(sourceStation, destinationStation, calculatedTrainStartDate);
         } else {
             // Fetch all routes between the stations
             routes = routeRepository.findTrainsBetweenStations(sourceStation, destinationStation);
         }
 
-            // Convert entities to DTOs
-        // Convert entities to DTOs using a lambda expression
+        // Ensure stations are loaded to avoid LazyInitializationException
+        routes.forEach(route -> route.getStations().size());
+
+        // Convert entities to DTOs
         return routes.stream()
                 .map(route -> convertToRouteDTO(route, travelDate, sourceStation, destinationStation))
                 .collect(Collectors.toList());
-
     }
+
+    private int getTravelDayForStation(String stationName) {
+        return routeRepository.findAll().stream()  // Fetch all routes (could optimize by filtering for relevant ones)
+                .flatMap(route -> route.getStations().stream())  // Get all stations from all routes
+                .filter(rs -> rs.getStation().getName().equals(stationName))  // Find the correct station
+                .map(RouteStation::getDay)  // Extract the day
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Station not found in any route: " + stationName));
+    }
+
 
     private RouteDTO convertToRouteDTO(Route route, LocalDate travelDate, String sourceStation, String destinationStation) {
         RouteDTO routeDTO = new RouteDTO();
