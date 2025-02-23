@@ -25,10 +25,23 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
     @Query("SELECT r FROM Route r JOIN r.stations s1 JOIN r.stations s2 " +
             "WHERE s1.station.name = :sourceStation AND s2.station.name = :destinationStation " +
             "AND EXISTS (SELECT sa FROM SeatAvailability sa " +
-            "WHERE sa.trainId = r.train.id AND sa.travelDate = :travelDate)")
+            "WHERE sa.trainId = r.train.id AND sa.travelDate = :calculatedTrainStartDate)")
     List<Route> findTrainsBetweenStationsOnDate(@Param("sourceStation") String sourceStation,
                                                 @Param("destinationStation") String destinationStation,
-                                                @Param("travelDate") LocalDate travelDate);
+                                                @Param("calculatedTrainStartDate") LocalDate calculatedTrainStartDate);
+
+//    @Query("SELECT r FROM Route r " +
+//            "JOIN r.stations s1 " +
+//            "JOIN r.stations s2 " +
+//            "WHERE s1.station.name = :sourceStation " +
+//            "AND s2.station.name = :destinationStation " +
+//            "AND FUNCTION('DATE_ADD', r.train.startDate, INTERVAL s1.day-1 DAY) = :travelDate " +
+//            "AND EXISTS (SELECT sa FROM SeatAvailability sa " +
+//            "WHERE sa.trainId = r.train.id " +
+//            "AND sa.travelDate = :travelDate)")
+//    List<Route> findTrainsBetweenStationsOnDate(@Param("sourceStation") String sourceStation,
+//                                                @Param("destinationStation") String destinationStation,
+//                                                @Param("travelDate") LocalDate travelDate);
 
 
 
@@ -42,4 +55,11 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
             "FROM Route r JOIN r.train t " +
             "WHERE t.trainNumber = :trainNumber AND r.id = :routeId")
     boolean existsByTrainNumberAndRouteId(@Param("trainNumber") String trainNumber, @Param("routeId") Long routeId);
+
+    @Query("SELECT r FROM Route r " +
+            "LEFT JOIN FETCH r.stations rs " +
+            "LEFT JOIN FETCH rs.station " + // Fetch Station as well
+            "WHERE r.id = :routeId")
+    Optional<Route> findByIdWithStations(@Param("routeId") Long routeId);
+
 }

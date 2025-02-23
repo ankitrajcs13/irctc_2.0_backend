@@ -10,11 +10,10 @@ import com.irctc2.booking.repository.PassengerRepository;
 import com.irctc2.route.model.Route;
 import com.irctc2.route.model.RouteStation;
 import com.irctc2.route.repository.RouteRepository;
-import com.irctc2.train.dto.AllocatedSeat;
 import com.irctc2.train.model.SeatAvailability;
 import com.irctc2.train.repository.SeatAvailabilityRepository;
+import com.irctc2.train.repository.TrainRepository;
 import com.irctc2.train.service.SeatBookingService;
-import com.irctc2.train.service.TrainMapper;
 import com.irctc2.train.service.TrainService;
 import com.irctc2.user.model.User;
 import com.irctc2.user.repository.UserRepository;
@@ -50,6 +49,9 @@ public class BookingService {
 
     @Autowired
     private SeatBookingService seatAvailabilityService; // Service to manage Train & Seat availability.
+
+    @Autowired
+    private TrainRepository trainRepository;
 
     @Transactional
     public BookingResponseDTO createBooking(CreateBookingRequest request, String email) {
@@ -275,11 +277,11 @@ public class BookingService {
 
     public List<BookingDTO> getBookingsForAuthenticatedUser(String email) {
         // Fetch all bookings associated with the given email
-        List<Booking> bookings = bookingRepository.findByUser_Email(email);
+        List<Booking> bookings = bookingRepository.findByUser_EmailOrderByIdDesc(email);
 
         // Convert to DTOs for response
         return bookings.stream()
-                .map(booking -> BookingMapper.convertToBookingDTO(booking, routeRepository))
+                .map(booking -> BookingMapper.convertToBookingDTO(booking, routeRepository, trainRepository))
                 .collect(Collectors.toList());
     }
 

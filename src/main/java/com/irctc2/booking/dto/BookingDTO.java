@@ -18,6 +18,7 @@ public class BookingDTO {
     private Long id;
     private String pnr;
     private String trainNumber;
+    private String trainName;
     private LocalDate travelDate;
     private BigDecimal totalFare;
     private BookingStatus status;

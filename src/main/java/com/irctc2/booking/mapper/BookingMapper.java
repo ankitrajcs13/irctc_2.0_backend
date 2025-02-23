@@ -9,7 +9,8 @@ import com.irctc2.booking.model.Passenger;
 import com.irctc2.route.model.Route;
 import com.irctc2.route.model.RouteStation;
 import com.irctc2.route.repository.RouteRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.irctc2.train.model.Train;
+import com.irctc2.train.repository.TrainRepository;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -64,7 +65,7 @@ public class BookingMapper {
     }
 
 
-    public static BookingDTO convertToBookingDTO(Booking booking, RouteRepository routeRepository) {
+    public static BookingDTO convertToBookingDTO(Booking booking, RouteRepository routeRepository, TrainRepository trainRepository) {
         Route route = routeRepository.findById(booking.getRouteId()).orElse(null);
 
         String sourceArrivalTime = null;
@@ -101,10 +102,15 @@ public class BookingMapper {
             }
         }
 
+        String trainName = trainRepository.findByTrainNumber(booking.getTrainNumber())
+                .map(Train::getName) // Get train name if train is found
+                .orElse("Unknown Train");
+
         return BookingDTO.builder()
                 .id(booking.getId())
                 .pnr(booking.getPnr())
                 .trainNumber(booking.getTrainNumber())
+                .trainName(trainName)
                 .travelDate(booking.getTravelDate())
                 .totalFare(booking.getTotalFare())
                 .status(booking.getStatus())

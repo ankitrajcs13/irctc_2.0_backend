@@ -11,6 +11,6 @@ import java.util.Optional;
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
     Optional<Booking> findByPnr(String pnr);
-    List<Booking> findByUser_Email(String email);
+    List<Booking> findByUser_EmailOrderByIdDesc(String email);
     List<Booking> findByStatus(BookingStatus status);
 }

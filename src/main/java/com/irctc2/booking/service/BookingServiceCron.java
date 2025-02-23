@@ -9,6 +9,7 @@ import com.irctc2.route.repository.RouteRepository;
 import com.irctc2.train.service.DiscordNotificationService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -37,9 +38,10 @@ public class BookingServiceCron {
     /**
      *  This can be called manually from an API
      */
+    @Transactional
     public void processExpiredBookings() {
         LocalDate yesterday = LocalDate.now().minusDays(1);
-        discordNotificationService.sendDiscordMessage("Manually triggering expired bookings.");
+        discordNotificationService.sendDiscordMessage("Cron Running to Process Expired Bookings.");
 
         List<Booking> confirmedBookings = bookingRepository.findByStatus(BookingStatus.CONFIRMED);
         int expiredCount = 0;
@@ -60,7 +62,7 @@ public class BookingServiceCron {
      * Calculate the actual end date of a journey dynamically.
      */
     private LocalDate calculateEndDate(Booking booking) {
-        Route route = routeRepository.findById(booking.getRouteId()).orElse(null);
+        Route route = routeRepository.findByIdWithStations(booking.getRouteId()).orElse(null);
 
         if (route != null) {
             RouteStation sourceRouteStation = route.getStations().stream()
