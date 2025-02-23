@@ -12,6 +12,7 @@ import com.irctc2.route.model.RouteStation;
 import com.irctc2.route.repository.RouteRepository;
 import com.irctc2.train.model.SeatAvailability;
 import com.irctc2.train.repository.SeatAvailabilityRepository;
+import com.irctc2.train.repository.TrainRepository;
 import com.irctc2.train.service.SeatBookingService;
 import com.irctc2.train.service.TrainService;
 import com.irctc2.user.model.User;
@@ -48,6 +49,9 @@ public class BookingService {
 
     @Autowired
     private SeatBookingService seatAvailabilityService; // Service to manage Train & Seat availability.
+
+    @Autowired
+    private TrainRepository trainRepository;
 
     @Transactional
     public BookingResponseDTO createBooking(CreateBookingRequest request, String email) {
@@ -277,7 +281,7 @@ public class BookingService {
 
         // Convert to DTOs for response
         return bookings.stream()
-                .map(booking -> BookingMapper.convertToBookingDTO(booking, routeRepository))
+                .map(booking -> BookingMapper.convertToBookingDTO(booking, routeRepository, trainRepository))
                 .collect(Collectors.toList());
     }
 
