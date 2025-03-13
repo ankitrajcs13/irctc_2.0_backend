@@ -66,7 +66,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.addAllowedOrigin("*"); // Allow requests from the frontend
+        config.addAllowedOrigin("https://admin-panel-seven-tan.vercel.app");
+        config.addAllowedOrigin("http://localhost:3000");
         config.addAllowedHeader("*"); // Allow all headers
         config.addAllowedMethod("*"); // Allow all HTTP methods
         config.setAllowCredentials(true); // Allow credentials (e.g., cookies, authorization headers)
