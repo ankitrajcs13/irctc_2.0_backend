@@ -28,8 +28,9 @@ public class UserController {
     private JwtTokenProvider tokenProvider;
 
     @PostMapping("/register")
-    public ResponseEntity<User> registerUser(@RequestBody User user) {
-        User savedUser = userService.saveUser(user);
+    public ResponseEntity<User> registerUser(@RequestBody User user, HttpServletRequest request) {
+        String clientIp = request.getRemoteAddr();
+        User savedUser = userService.saveUser(user, clientIp);
         return ResponseEntity.ok(savedUser);
     }
 
