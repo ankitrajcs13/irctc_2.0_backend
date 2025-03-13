@@ -3,6 +3,7 @@ package com.irctc2.user.service;
 import com.irctc2.user.dto.UpdateRequest;
 import com.irctc2.user.model.User;
 import com.irctc2.user.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -10,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Calendar;
 import java.util.Optional;
 
 @Service
@@ -20,7 +22,15 @@ public class UserService {
     @Autowired
     private UserRepository userRepository;
 
-    public User saveUser(User user) {
+    @Value("${user.password.expiry-days}")
+    private int passwordExpiryDays;
+
+    public User saveUser(User user, String clientIp) {
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DAY_OF_YEAR, passwordExpiryDays);
+        user.setPasswordExpireDate(calendar.getTime());
+        user.setUpdateIp(clientIp);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
