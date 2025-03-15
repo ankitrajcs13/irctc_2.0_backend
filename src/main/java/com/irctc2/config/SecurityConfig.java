@@ -48,7 +48,7 @@ public class SecurityConfig {
         http
                 .cors() // Enable CORS
                 .and()
-                .csrf().disable()
+                .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS) // JWT is stateless
                 .and()
                 .authorizeRequests()
