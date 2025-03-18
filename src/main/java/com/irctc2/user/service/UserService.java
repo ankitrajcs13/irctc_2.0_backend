@@ -30,14 +30,23 @@ public class UserService {
         // Check if a user with the same email already exists in the database
         return userRepository.existsByEmail(email);
     }
-    public User saveUser(User user, String clientIp) {
+
+
+    public boolean isUsernameTaken(String username) {
+        return userRepository.existsByUsername(username);  // Check if the username exists
+    }
+
+    public boolean isPhoneNumberTaken(String phoneNumber) {
+        return userRepository.existsByPhoneNumber(phoneNumber);  // Check if the phone number exists
+    }
+    public void saveUser(User user, String clientIp) {
 
         Calendar calendar = Calendar.getInstance();
         calendar.add(Calendar.DAY_OF_YEAR, passwordExpiryDays);
         user.setPasswordExpireDate(calendar.getTime());
         user.setUpdateIp(clientIp);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        return userRepository.save(user);
+        userRepository.save(user);
     }
 
     public Optional<User> getUserByEmail(String email) {

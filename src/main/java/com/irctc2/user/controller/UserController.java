@@ -36,6 +36,18 @@ public class UserController {
                     .body("Email already registered. Please use a different email.");
         }
 
+        // Check if username already exists
+        if (userService.isUsernameTaken(user.getUsername())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("Username already taken. Please choose a different username.");
+        }
+
+        // Check if phone number already exists
+        if (userService.isPhoneNumberTaken(user.getPhoneNumber())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("Phone number already registered. Please use a different phone number.");
+        }
+
         String clientIp = request.getRemoteAddr();
         userService.saveUser(user, clientIp);  // Save the user (no need to return the user)
 
