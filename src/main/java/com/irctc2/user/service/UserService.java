@@ -25,6 +25,11 @@ public class UserService {
     @Value("${user.password.expiry-days}")
     private int passwordExpiryDays;
 
+
+    public boolean isEmailTaken(String email) {
+        // Check if a user with the same email already exists in the database
+        return userRepository.existsByEmail(email);
+    }
     public User saveUser(User user, String clientIp) {
 
         Calendar calendar = Calendar.getInstance();

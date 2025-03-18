@@ -28,10 +28,20 @@ public class UserController {
     private JwtTokenProvider tokenProvider;
 
     @PostMapping("/register")
-    public ResponseEntity<User> registerUser(@RequestBody User user, HttpServletRequest request) {
+    public ResponseEntity<String> registerUser(@RequestBody User user, HttpServletRequest request) {
+        // Check if email already exists
+        if (userService.isEmailTaken(user.getEmail())) {
+            // Return 409 Conflict if email is already taken with a message string
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("Email already registered. Please use a different email.");
+        }
+
         String clientIp = request.getRemoteAddr();
-        User savedUser = userService.saveUser(user, clientIp);
-        return ResponseEntity.ok(savedUser);
+        userService.saveUser(user, clientIp);  // Save the user (no need to return the user)
+
+        // Return 201 Created status with a success message string
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body("User created successfully.");
     }
 
     @PostMapping("/login")
