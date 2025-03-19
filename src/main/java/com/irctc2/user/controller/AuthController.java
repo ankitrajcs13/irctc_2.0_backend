@@ -1,6 +1,7 @@
 package com.irctc2.user.controller;
 
 import com.irctc2.security.jwt.JwtTokenProvider;
+import com.irctc2.user.dto.UserDTO;
 import com.irctc2.user.model.User;
 import com.irctc2.user.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,14 +35,14 @@ public class AuthController {
     public ResponseEntity<?> authenticateUser(@RequestBody User loginRequest) {
         try {
             // Check if the user exists and is active
-            Optional<User> userOptional = userService.getUserByEmail(loginRequest.getEmail());
+            Optional<UserDTO> userOptional = userService.getUserByEmail(loginRequest.getEmail());
             if (userOptional.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
                         "message", "User not found or has been deleted",
                         "details", "Please check your email or register again."
                 ));
             }
-            User user = userOptional.get();
+            UserDTO user = userOptional.get();
             if ("Deactivated".equals(user.getStatus())) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
                         "message", "User account has been deactivated",

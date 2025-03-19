@@ -4,6 +4,7 @@ import com.irctc2.security.jwt.JwtTokenProvider;
 import com.irctc2.user.dto.ChangePasswordRequest;
 import com.irctc2.user.dto.LoginRequest;
 import com.irctc2.user.dto.UpdateRequest;
+import com.irctc2.user.dto.UserDTO;
 import com.irctc2.user.model.User;
 import com.irctc2.user.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -74,7 +75,7 @@ public class UserController {
     }
 
     @GetMapping("/email")
-    public ResponseEntity<User> getUserByEmail(@RequestParam String email) {
+    public ResponseEntity<UserDTO> getUserByEmail(@RequestParam String email) {
         return userService.getUserByEmail(email)
                 .map(user -> ResponseEntity.ok(user))
                 .orElse(ResponseEntity.notFound().build());
@@ -146,10 +147,10 @@ public class UserController {
 
 
     @GetMapping
-    public ResponseEntity<List<User>> getAllUsers(
+    public ResponseEntity<List<UserDTO>> getAllUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        Page<User> usersPage = userService.getAllUsers(page, size);
+        Page<UserDTO> usersPage = userService.getAllUsers(page, size);
         return ResponseEntity.ok(usersPage.getContent());
     }
 

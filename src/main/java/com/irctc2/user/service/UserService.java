@@ -1,6 +1,7 @@
 package com.irctc2.user.service;
 
 import com.irctc2.user.dto.UpdateRequest;
+import com.irctc2.user.dto.UserDTO;
 import com.irctc2.user.model.User;
 import com.irctc2.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -49,8 +51,13 @@ public class UserService {
         userRepository.save(user);
     }
 
-    public Optional<User> getUserByEmail(String email) {
-        return userRepository.findByEmail(email);
+    public Optional<UserDTO> getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .map(user -> new UserDTO(user.getId(), user.getUsername(), user.getEmail(), user.getFirstName(),
+                        user.getLastName(), user.getPhoneNumber(), user.getGender(), user.getDob(),
+                        user.getAddress(), user.getPincode(), user.getNationality(), user.getRole(), user.getStatus(),
+                        user.getProfileImageUrl(), user.getIsVerified(), user.getPasswordExpireDate(),
+                        user.getCreatedAt(), user.getUpdatedAt()));
     }
 
     public Optional<User> getUserById(Long id) {
@@ -128,10 +135,18 @@ public class UserService {
         return false;
     }
 
-    public Page<User> getAllUsers(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        return userRepository.findAll(pageable);
+    public Page<UserDTO> getAllUsers(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size,Sort.by(Sort.Order.asc("id")));
+        Page<User> usersPage = userRepository.findAll(pageable);
+
+        return usersPage.map(user -> new UserDTO(
+                user.getId(), user.getUsername(), user.getEmail(), user.getFirstName(),
+                user.getLastName(), user.getPhoneNumber(), user.getGender(), user.getDob(),
+                user.getAddress(), user.getPincode(), user.getNationality(), user.getRole(),
+                user.getStatus(), user.getProfileImageUrl(), user.getIsVerified(),
+                user.getPasswordExpireDate(), user.getCreatedAt(), user.getUpdatedAt()));
     }
+
 
     public boolean verifyUser(Long id) {
         Optional<User> optionalUser = userRepository.findById(id);
