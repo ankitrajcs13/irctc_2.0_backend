@@ -12,6 +12,7 @@ public class GlobalCorsConfig {
     @Bean
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
+        config.addAllowedOrigin("https://admin-panel-seven-tan.vercel.app");
         config.addAllowedOrigin("http://localhost:3000"); // Frontend URL
         config.addAllowedHeader("*"); // Allow all headers
         config.addAllowedMethod("*"); // Allow all HTTP methods
