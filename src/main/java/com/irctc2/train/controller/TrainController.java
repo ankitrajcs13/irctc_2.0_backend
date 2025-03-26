@@ -3,6 +3,7 @@ package com.irctc2.train.controller;
 import com.irctc2.train.dto.TrainDTO;
 import com.irctc2.train.model.CreateTrainRequest;
 import com.irctc2.train.model.Train;
+import com.irctc2.train.service.PartitionMaintenanceService;
 import com.irctc2.train.service.TrainService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -17,6 +18,15 @@ public class TrainController {
 
     @Autowired
     private TrainService trainService;
+
+    @Autowired
+    private PartitionMaintenanceService partitionMaintenanceService;
+
+    @PostMapping("/trigger-partition-cron")
+    public String triggerPartitionJob() {
+        partitionMaintenanceService.maintainPartitions();
+        return "Partition maintenance job triggered manually.";
+    }
 
     // API for fetching all trains
     @GetMapping("/fetch-all-trains")

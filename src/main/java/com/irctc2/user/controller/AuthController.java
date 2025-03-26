@@ -37,7 +37,7 @@ public class AuthController {
             // Check if the user exists and is active
             Optional<UserDTO> userOptional = userService.getUserByEmail(loginRequest.getEmail());
             if (userOptional.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
                         "message", "User not found or has been deleted",
                         "details", "Please check your email or register again."
                 ));
@@ -65,7 +65,7 @@ public class AuthController {
 
         } catch (UsernameNotFoundException ex) {
             // Handle case where the user does not exist
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
                     "message", "User not found or has been deleted",
                     "details", "Please check your email or register again."
             ));

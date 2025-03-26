@@ -11,6 +11,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
+
+
 @Service
 public class PartitionMaintenanceService {
 
@@ -22,69 +24,78 @@ public class PartitionMaintenanceService {
     }
     @Autowired
     private DiscordNotificationService discordNotificationService;
+    @Autowired
+    private MaintenanceModeService maintenanceModeService;
     /**
      * Run this method every day at 2:00 AM.
      */
-    @Scheduled(cron = "0 0 5 * * ?", zone = "Asia/Kolkata")
+    @Scheduled(cron = "0 20 0 * * ?", zone = "Asia/Kolkata")
     public void maintainPartitions() {
-        LocalDate today = LocalDate.now();
-        LocalDate windowEnd = today.plusDays(60);
-        LocalDate currentDate = LocalDate.now(); // For current date only
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd"); // Desired date format
-        String formattedDate = currentDate.format(formatter);
+        maintenanceModeService.setMaintenance(true);
+        long startTime = System.currentTimeMillis();
+        try {
+            LocalDate today = LocalDate.now();
+            LocalDate windowEnd = today.plusDays(60);
+            LocalDate currentDate = LocalDate.now(); // For current date only
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd"); // Desired date format
+            String formattedDate = currentDate.format(formatter);
+            // Create message including the current date
+            String message = "Cron job for partitioning and seeding data started successfully on " + formattedDate + ".";
 
-        // Create message including the current date
-        String message = "Cron job for partitioning and seeding data started successfully on " + formattedDate + ".";
+            discordNotificationService.sendDiscordMessage(message);
 
-        discordNotificationService.sendDiscordMessage(message);
+            // Compute the next aligned partition strt date based on the anchor date.
+            long daysSinceAnchor = ChronoUnit.DAYS.between(ANCHOR_DATE, today);
+            long remainder = daysSinceAnchor % 10;
+            LocalDate alignedStart = remainder == 0 ? today : today.plusDays(10 - remainder);
+            // TODO DON"T USE THIS -> USE alignedStart
+            LocalDate cycleStart = alignedStart;
 
-        // Compute the next aligned partition strt date based on the anchor date.
-        long daysSinceAnchor = ChronoUnit.DAYS.between(ANCHOR_DATE, today);
-        long remainder = daysSinceAnchor % 10;
-        LocalDate alignedStart = remainder == 0 ? today : today.plusDays(10 - remainder);
-        // TODO DON"T USE THIS -> USE alignedStart
-        LocalDate cycleStart = ANCHOR_DATE;
-
-        // 1. Create partitions for any new 10-day ranges in the 60-day window, starting from the aligned start date.
-        for (LocalDate start = cycleStart; start.isBefore(windowEnd); start = start.plusDays(10)) {
-            LocalDate end = start.plusDays(10);
-            String partitionName = "seat_availability_" + start.format(FORMATTER) + "_" + end.format(FORMATTER);
-            if (!partitionExists(partitionName)) {
-                String createSql = "CREATE TABLE " + partitionName + " PARTITION OF seat_availability " +
-                        "FOR VALUES FROM ('" + start.toString() + "') TO ('" + end.toString() + "')";
-                jdbcTemplate.execute(createSql);
-                System.out.println("Created partition: " + partitionName);
+            // 1. Create partitions for any new 10-day ranges in the 60-day window, starting from the aligned start date.
+            for (LocalDate start = cycleStart; start.isBefore(windowEnd); start = start.plusDays(10)) {
+                LocalDate end = start.plusDays(10);
+                String partitionName = "seat_availability_" + start.format(FORMATTER) + "_" + end.format(FORMATTER);
+                if (!partitionExists(partitionName)) {
+                    String createSql = "CREATE TABLE " + partitionName + " PARTITION OF seat_availability " +
+                            "FOR VALUES FROM ('" + start.toString() + "') TO ('" + end.toString() + "')";
+                    jdbcTemplate.execute(createSql);
+                    System.out.println("Created partition: " + partitionName);
 
 
-                // 2. Seed data for this new partition if needed.
-                seedPartition(start, end);  // TODO TURN ON THIS TO SEED DATA
+                    // 2. Seed data for this new partition if needed.
+                    seedPartition(start, end);  // TODO TURN ON THIS TO SEED DATA
+                }
             }
-        }
 
-        // 2. Drop partitions that are no longer needed (i.e. partitions ending before today)
-        List<String> partitions = jdbcTemplate.queryForList(
-                "SELECT relname FROM pg_class WHERE relname LIKE 'seat_availability\\_%' ESCAPE '\\'",
-                String.class
-        );
+            // 2. Drop partitions that are no longer needed (i.e. partitions ending before today)
+            List<String> partitions = jdbcTemplate.queryForList(
+                    "SELECT relname FROM pg_class WHERE relname LIKE 'seat_availability\\_%' ESCAPE '\\'",
+                    String.class
+            );
 
-        for (String partitionName : partitions) {
-            // Partition name format: seat_availability_YYYY_MM_DD_YYYY_MM_DD
-            // Remove the prefix to get the date range part.
-            String suffix = partitionName.substring("seat_availability_".length());
-            String[] dateParts = suffix.split("_");
-            // We expect 6 parts: [YYYY, MM, DD, YYYY, MM, DD]
-            if (dateParts.length != 6) {
-                continue; // Skip unexpected names
+            for (String partitionName : partitions) {
+                // Partition name format: seat_availability_YYYY_MM_DD_YYYY_MM_DD
+                // Remove the prefix to get the date range part.
+                String suffix = partitionName.substring("seat_availability_".length());
+                String[] dateParts = suffix.split("_");
+                // We expect 6 parts: [YYYY, MM, DD, YYYY, MM, DD]
+                if (dateParts.length != 6) {
+                    continue;
+                }
+                // Construct the partition's upper bound date from the last three parts.
+                String endDateStr = dateParts[3] + "-" + dateParts[4] + "-" + dateParts[5];
+                LocalDate partitionEnd = LocalDate.parse(endDateStr);
+                // If the partition’s end date is before today, it’s out of the window.
+                if (partitionEnd.isBefore(today)) {
+                    String dropSql = "DROP TABLE IF EXISTS " + partitionName;
+                    jdbcTemplate.execute(dropSql);
+                    System.out.println("Dropped partition: " + partitionName);
+                }
             }
-            // Construct the partition's upper bound date from the last three parts.
-            String endDateStr = dateParts[3] + "-" + dateParts[4] + "-" + dateParts[5];
-            LocalDate partitionEnd = LocalDate.parse(endDateStr);
-            // If the partition’s end date is before today, it’s out of the window.
-            if (partitionEnd.isBefore(today)) {
-                String dropSql = "DROP TABLE IF EXISTS " + partitionName;
-                jdbcTemplate.execute(dropSql);
-                System.out.println("Dropped partition: " + partitionName);
-            }
+            long duration = System.currentTimeMillis() - startTime;
+            discordNotificationService.sendDiscordMessage("✅ Partitioning & seeding completed in " + duration / 1000 + " seconds.");
+        }  finally {
+            maintenanceModeService.setMaintenance(false); // 🔓 Always reset
         }
     }
 
@@ -117,6 +128,16 @@ public class PartitionMaintenanceService {
             // For each train, query its bogies and insert seat records.
             for (Map<String, Object> trainRow : trains) {
                 Long trainId = (Long) trainRow.get("train_id");
+
+                // ✅ Skip if this train has already been seeded for this date
+                String checkSql = "SELECT COUNT(*) FROM seat_availability WHERE train_id = ? AND travel_date = ?";
+                Integer count = jdbcTemplate.queryForObject(checkSql, new Object[]{trainId, date}, Integer.class);
+                if (count != null && count > 0) {
+                    System.out.println("Skipping train_id " + trainId + " on " + date + " (already seeded)");
+                    discordNotificationService.sendDiscordMessage("✅ Skipping Train with " + trainId);
+                    continue;
+                }
+
 
                 // Query bogies for the current train.
                 String bogieQuery = "SELECT id AS bogie_id, bogie_name, bogie_type " +
