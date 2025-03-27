@@ -60,11 +60,8 @@ public class PartitionMaintenanceService {
                             "FOR VALUES FROM ('" + start.toString() + "') TO ('" + end.toString() + "')";
                     jdbcTemplate.execute(createSql);
                     System.out.println("Created partition: " + partitionName);
-
-
-                    // 2. Seed data for this new partition if needed.
-                    seedPartition(start, end);  // TODO TURN ON THIS TO SEED DATA
                 }
+                seedPartition(start, end);
             }
 
             // 2. Drop partitions that are no longer needed (i.e. partitions ending before today)

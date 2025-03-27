@@ -88,9 +88,7 @@ public class RouteService {
 
         List<Route> routes;
         if (travelDate != null) {
-            // TODO : Optimize this getTravelDayForStation function->
-            LocalDate calculatedTrainStartDate = travelDate.minusDays(getTravelDayForStation(sourceStation)-1);
-            routes = routeRepository.findTrainsBetweenStationsOnDate(sourceStation, destinationStation, calculatedTrainStartDate);
+            routes = routeRepository.findRoutesWithAvailabilityOnDate(sourceStation, destinationStation, travelDate);
         } else {
             // Fetch all routes between the stations
             routes = routeRepository.findTrainsBetweenStations(sourceStation, destinationStation);
@@ -105,14 +103,14 @@ public class RouteService {
                 .collect(Collectors.toList());
     }
 
-    private int getTravelDayForStation(String stationName) {
-        return routeRepository.findAll().stream()  // Fetch all routes (could optimize by filtering for relevant ones)
-                .flatMap(route -> route.getStations().stream())  // Get all stations from all routes
-                .filter(rs -> rs.getStation().getName().equals(stationName))  // Find the correct station
-                .map(RouteStation::getDay)  // Extract the day
+    private int getTravelDayForStation(Route route, String stationName) {
+        return route.getStations().stream()
+                .filter(rs -> rs.getStation().getName().equals(stationName))
+                .map(RouteStation::getDay)
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Station not found in any route: " + stationName));
+                .orElseThrow(() -> new RuntimeException("Station not found in route: " + stationName));
     }
+
 
 
     private RouteDTO convertToRouteDTO(Route route, LocalDate travelDate, String sourceStation, String destinationStation) {

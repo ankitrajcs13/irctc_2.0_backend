@@ -20,4 +20,6 @@ public interface SeatAvailabilityRepository extends JpaRepository<SeatAvailabili
                                                                   @Param("travelDate") LocalDate travelDate,
                                                                   @Param("bogieType") String bogieType);
 
+    boolean existsByTrainIdAndTravelDate(Long trainId, LocalDate travelDate);
+
 }
