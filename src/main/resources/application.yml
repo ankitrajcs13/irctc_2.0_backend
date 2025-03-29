@@ -35,6 +35,9 @@ spring:
 jwt:
   secret: b5c3d8b1e1a7324d99e87a4ebf03fdd8a6d3c987ee5a8f2c51fdb6b89e7fd42a
   expiration-ms: 2592000000 # Token validity: 30 days (1 month)
+discord:
+  webhook:
+    url: "https://discord.com/api/webhooks/1341027744569491486/6wlipG2pDmRFtzGAJIdEwqhOVzhgkNq6biliaMEtDZwx-HF8SHbcX5TaCteP3n2_KT5H";
 user:
   password:
     expiry-days: 90

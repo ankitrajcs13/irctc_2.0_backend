@@ -1,5 +1,6 @@
 package com.irctc2.train.service;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -13,7 +14,9 @@ import java.util.Map;
 @Service
 public class DiscordNotificationService {
 
-    private static final String DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1341027744569491486/6wlipG2pDmRFtzGAJIdEwqhOVzhgkNq6biliaMEtDZwx-HF8SHbcX5TaCteP3n2_KT5H"; // Replace with your Discord webhook URL
+    @Value("${discord.webhook.url}")
+    private String discordWebhookUrl;
+
 
     private final RestTemplate restTemplate;
 
@@ -32,6 +35,6 @@ public class DiscordNotificationService {
         HttpEntity<Map<String, String>> entity = new HttpEntity<>(payload, headers);
 
         // Send POST request to Discord Webhook
-        restTemplate.postForObject(DISCORD_WEBHOOK_URL, entity, String.class);
+        restTemplate.postForObject(discordWebhookUrl, entity, String.class);
     }
 }
