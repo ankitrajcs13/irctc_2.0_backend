@@ -53,7 +53,7 @@ public class SecurityConfig {
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS) // JWT is stateless
                 .and()
                 .authorizeRequests()
-                .requestMatchers("/api/auth/login", "/api/users/register").permitAll() // Public endpoints
+                .requestMatchers("/api/auth/login", "/api/users/register", "/api/system-status").permitAll() // Public endpoints
                 .requestMatchers("/api/trains").hasAuthority("ADMIN")
                 .requestMatchers("/api/passenger/**").hasAuthority("ROLE_PASSENGER")
                 .requestMatchers("/api/developer/**").hasAuthority("ROLE_DEVELOPER")

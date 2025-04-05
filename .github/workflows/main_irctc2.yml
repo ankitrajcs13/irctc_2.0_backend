@@ -53,3 +53,5 @@ jobs:
           slot-name: 'Production'
           package: '*.jar'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_CEC4D3F85C474536836D34DC07DC2C36 }}
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
