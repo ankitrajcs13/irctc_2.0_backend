@@ -142,7 +142,7 @@ public class RouteService {
             }
         }
 
-        // Get available seats if a travelDate is provided
+        // Get available seats if a travelDate is provide
         if (travelDate != null) {
             Map<String, Integer>  availableSeatsByBogieType = getAvailableSeats(route.getTrain().getId(), travelDate, startSegment, endSegment);
             routeDTO.setTravelDate(travelDate);
