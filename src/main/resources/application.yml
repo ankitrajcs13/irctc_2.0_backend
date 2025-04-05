@@ -37,7 +37,7 @@ jwt:
   expiration-ms: 2592000000 # Token validity: 30 days (1 month)
 discord:
   webhook:
-    url: "https://discord.com/api/webhooks/1357252242310434866/jfhcNhULG-B64HB4S85LqXB4pscelqhVNug6JAlBGSYRWYNkxKZzGrvPuLcKh6tAkSoP"
+    url: ${DISCORD_WEBHOOK_URL}
 
 razorpay:
   keyId: rzp_test_fCAXi9H2JlDUje
