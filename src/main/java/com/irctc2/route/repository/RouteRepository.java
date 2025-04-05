@@ -41,6 +41,7 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
     JOIN stations s_dest ON rs_dest.station_id = s_dest.id
     WHERE s_source.name = :sourceStation
       AND s_dest.name = :destinationStation
+       AND rs_source.station_order < rs_dest.station_order
       AND EXISTS (
         SELECT 1
         FROM seat_availability sa
