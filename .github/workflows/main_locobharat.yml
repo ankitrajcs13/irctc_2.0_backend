@@ -57,20 +57,6 @@ jobs:
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
 
-      - name: Send Discord Notification on Deployment Success
-        if: success()  # This ensures that the notification is sent only if the deployment is successful
-        run: |
-          curl -X POST ${{ secrets.DISCORD_WEBHOOK_URL }} \
-          -H "Content-Type: application/json" \
-          -d '{
-                "content": "🚀 Deployment Success! Your Spring Boot app has been deployed successfully to Azure Web App: locobharat."
-              }'
+      - name: Debug Discord Webhook URL
+        run: echo ${{ secrets.DISCORD_WEBHOOK_URL }}
 
-      - name: Send Discord Notification on Deployment Failure
-        if: failure()  # This ensures that the notification is sent only if the deployment fails
-        run: |
-          curl -X POST ${{ secrets.DISCORD_WEBHOOK_URL }} \
-          -H "Content-Type: application/json" \
-          -d '{
-                "content": "❌ Deployment Failed! There was an issue while deploying your Spring Boot app to Azure Web App: locobharat."
-              }'
