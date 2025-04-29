@@ -38,7 +38,7 @@ jwt:
   refresh-expiration-ms: 604800000  # 7 days for refresh token expiration
 discord:
   webhook:
-     url: ${DISCORD_WEBHOOK_URL}
+    url: ${DISCORD_WEBHOOK_URL}
 
 razorpay:
   keyId: rzp_test_fCAXi9H2JlDUje
