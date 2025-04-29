@@ -1,6 +1,7 @@
 package com.irctc2.booking.model;
 
 import com.irctc2.booking.entity.BookingStatus;
+import com.irctc2.payment.model.PaymentHistory;
 import com.irctc2.user.model.User;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -63,5 +64,12 @@ public class Booking {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    @OneToOne(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private PaymentHistory paymentHistory;
+
+    public Object getBookingStatus() {
+        return null;
+    }
 }
 

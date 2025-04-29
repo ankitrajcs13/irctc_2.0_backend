@@ -58,10 +58,14 @@ public class AuthController {
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
             // Generate a JWT token
-            String jwt = tokenProvider.generateToken(loginRequest.getEmail(), user.getRole());
+            String accessToken = tokenProvider.generateToken(loginRequest.getEmail(), user.getRole());
+            String refreshToken = tokenProvider.generateRefreshToken(loginRequest.getEmail());
 
             // Return the token
-            return ResponseEntity.ok(jwt); // Return the JWT token
+            return ResponseEntity.ok(Map.of(
+                    "accessToken", accessToken,
+                    "refreshToken", refreshToken
+            ));
 
         } catch (UsernameNotFoundException ex) {
             // Handle case where the user does not exist
@@ -79,6 +83,49 @@ public class AuthController {
             // Handle other unexpected errors
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                     "message", "An unexpected error occurred",
+                    "details", ex.getMessage()
+            ));
+        }
+    }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<?> refreshAccessToken(@RequestBody Map<String, String> request) {
+        String refreshToken = request.get("refreshToken");
+
+        if (refreshToken == null || refreshToken.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                    "message", "Refresh token is required"
+            ));
+        }
+
+        try {
+            // Validate the refresh token
+            String username = tokenProvider.getUsernameFromToken(refreshToken);
+            if (username == null || !tokenProvider.validateToken(refreshToken)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                        "message", "Invalid or expired refresh token"
+                ));
+            }
+
+            // Generate a new access token using the username
+            Optional<UserDTO> userOptional = userService.getUserByEmail(username);
+            if (userOptional.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                        "message", "User not found"
+                ));
+            }
+
+            UserDTO user = userOptional.get();
+            String newAccessToken = tokenProvider.generateToken(username, user.getRole());
+
+            // Return the new access token
+            return ResponseEntity.ok(Map.of(
+                    "accessToken", newAccessToken
+            ));
+
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "message", "An error occurred while refreshing the token",
                     "details", ex.getMessage()
             ));
         }

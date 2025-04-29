@@ -7,6 +7,7 @@ import com.irctc2.booking.entity.BookingStatus;
 import com.irctc2.booking.model.Passenger;
 import com.irctc2.booking.repository.BookingRepository;
 import com.irctc2.booking.repository.PassengerRepository;
+import com.irctc2.payment.service.PaymentService;
 import com.irctc2.route.model.Route;
 import com.irctc2.route.model.RouteStation;
 import com.irctc2.route.repository.RouteRepository;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -53,8 +55,11 @@ public class BookingService {
     @Autowired
     private TrainRepository trainRepository;
 
+    @Autowired
+    private PaymentService paymentService;
+
     @Transactional
-    public BookingResponseDTO createBooking(CreateBookingRequest request, String email) {
+    public Booking createBooking(CreateBookingRequest request, String email, String paymentId, String paymentStatus) {
         // Fetch the route for the given train number
         Route route = routeRepository.findByTrainNumber(request.getTrainNumber())
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -147,8 +152,11 @@ public class BookingService {
         bookingRepository.save(booking);
         passengerRepository.saveAll(passengers);
 
+        // After booking is saved, save the payment history (assuming the payment was successful and associated with the paymentId)
+        paymentService.savePaymentHistory(paymentId, user, totalFare.doubleValue(), paymentStatus, LocalDate.now().toString(), booking);
+
         // Directly return BookingResponseDTO
-        return BookingMapper.toResponseDTO(booking);
+        return booking;
     }
 
     private BigDecimal calculateFare(int totalPassengers, String trainNumber, String sourceStation, String destinationStation, String bogieType, boolean isTatkal) {
@@ -292,9 +300,9 @@ public class BookingService {
 
         // Change booking status to "CANCELLED"
         booking.setStatus(BookingStatus.CANCELLED);
-
+        String paymentId = booking.getPaymentHistory().getPaymentId();
         // Optionally, handle seat reallocation/refund logic
-        // Example: refundService.processRefund(booking);
+        String refundStatus = paymentService.processRefund(paymentId);
 
         bookingRepository.save(booking);
         return BookingMapper.toDTO(booking); // Convert to DTO for response
