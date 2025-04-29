@@ -22,6 +22,9 @@ public class JwtTokenProvider {
     @Value("${jwt.expiration-ms}")
     private long jwtExpirationMs;
 
+    @Value("${jwt.refresh-expiration-ms}")
+    private long jwtRefreshExpirationMs;
+
     private SecretKey jwtSecret;
 
     @PostConstruct
@@ -40,6 +43,19 @@ public class JwtTokenProvider {
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(SignatureAlgorithm.HS512, jwtSecret) // HMAC SHA-512 encryption
+                .compact();
+    }
+
+    // Generate JWT refresh token for authenticated user
+    public String generateRefreshToken(String username) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + jwtRefreshExpirationMs);
+
+        return Jwts.builder()
+                .setSubject(username)
+                .setIssuedAt(now)
+                .setExpiration(expiryDate)
+                .signWith(SignatureAlgorithm.HS512, jwtSecret)
                 .compact();
     }
 

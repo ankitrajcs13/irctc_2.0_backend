@@ -34,10 +34,11 @@ spring:
 
 jwt:
   secret: b5c3d8b1e1a7324d99e87a4ebf03fdd8a6d3c987ee5a8f2c51fdb6b89e7fd42a
-  expiration-ms: 2592000000 # Token validity: 30 days (1 month)
+  expiration-ms: 3600000 # Token validity: 30 days (1 month)
+  refresh-expiration-ms: 604800000  # 7 days for refresh token expiration
 discord:
   webhook:
-    url: ${DISCORD_WEBHOOK_URL}
+    url: "www."
 
 razorpay:
   keyId: rzp_test_fCAXi9H2JlDUje

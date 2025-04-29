@@ -54,6 +54,7 @@ public class SecurityConfig {
                 .and()
                 .authorizeRequests()
                 .requestMatchers("/api/auth/login", "/api/users/register", "/api/system-status").permitAll() // Public endpoints
+                .requestMatchers("/api/auth/refresh-token").permitAll()
                 .requestMatchers("/api/trains").hasAuthority("ADMIN")
                 .requestMatchers("/api/passenger/**").hasAuthority("ROLE_PASSENGER")
                 .requestMatchers("/api/developer/**").hasAuthority("ROLE_DEVELOPER")

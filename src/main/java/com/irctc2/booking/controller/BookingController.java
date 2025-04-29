@@ -6,6 +6,7 @@ import com.irctc2.booking.dto.CreateBookingRequest;
 import com.irctc2.booking.model.Booking;
 import com.irctc2.booking.service.BookingService;
 import com.irctc2.booking.service.BookingServiceCron;
+import com.irctc2.payment.service.PaymentService;
 import com.irctc2.security.jwt.JwtTokenProvider;
 import com.irctc2.train.service.DiscordNotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,8 +33,13 @@ public class BookingController {
     @Autowired
     private DiscordNotificationService discordNotificationService;
 
+    @Autowired
+    private PaymentService paymentService;
+
     @PostMapping
-    public ResponseEntity<BookingResponseDTO> createBooking(@RequestBody CreateBookingRequest request,
+    public ResponseEntity<String> createBooking(@RequestBody CreateBookingRequest request,
+                                                @RequestParam boolean verifyPayment,
+                                                @RequestParam String paymentId,
                                                             @RequestHeader("Authorization") String token) {
 
         // Extract email from token
@@ -43,7 +49,19 @@ public class BookingController {
 
         // TODO -> HANDLE HOW ADMIN CAN DO BOOKINGS USING ROLE FROM TOKEN
         String email = jwtTokenProvider.getUsernameFromToken(token);
-        BookingResponseDTO booking = bookingService.createBooking(request, email);
+
+        // Verify payment status before creating the booking
+        String paymentStatus = "MANUAL";  // Default status when verifyPayment is false
+        if(verifyPayment) {
+            Map<String, String> paymentVerificationResponse = paymentService.verifyPayment(paymentId, email, true);
+
+            if (!"success".equals(paymentVerificationResponse.get("status"))) {
+                return ResponseEntity.badRequest().body(paymentVerificationResponse.get("message"));
+            }
+            paymentStatus = "SUCCESS";
+        }
+
+        Booking booking = bookingService.createBooking(request, email, paymentId, paymentStatus);
 
         // TODO -> Currently we are only sending 1 passenger to webhook
         String discordMessage = String.format(
@@ -56,7 +74,7 @@ public class BookingController {
         );
 
         discordNotificationService.sendDiscordMessage(discordMessage);
-        return ResponseEntity.status(HttpStatus.CREATED).body(booking);
+        return ResponseEntity.status(HttpStatus.CREATED).body("Booking Created Successfully");
     }
 
     @GetMapping("/{pnr}")
