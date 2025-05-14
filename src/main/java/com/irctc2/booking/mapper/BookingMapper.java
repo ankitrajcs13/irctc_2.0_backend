@@ -6,6 +6,8 @@ import com.irctc2.booking.dto.BookingResponseDTO;
 import com.irctc2.booking.dto.PassengerDTO;
 import com.irctc2.booking.model.Booking;
 import com.irctc2.booking.model.Passenger;
+import com.irctc2.payment.dto.PaymentHistoryDTO;
+import com.irctc2.payment.model.PaymentHistory;
 import com.irctc2.route.model.Route;
 import com.irctc2.route.model.RouteStation;
 import com.irctc2.route.repository.RouteRepository;
@@ -125,6 +127,7 @@ public class BookingMapper {
                 .passengers(booking.getPassengers().stream()
                         .map(BookingMapper::convertToPassengerDTO)
                         .collect(Collectors.toList()))
+                .paymentHistory(convertToPaymentHistoryDTO(booking.getPaymentHistory()))
                 .build();
     }
 
@@ -137,6 +140,20 @@ public class BookingMapper {
                 .age(passenger.getAge())
                 .gender(passenger.getGender())
                 .seatNumber(passenger.getSeatNumber())
+                .build();
+    }
+
+    public static PaymentHistoryDTO convertToPaymentHistoryDTO(PaymentHistory paymentHistory) {
+        if (paymentHistory == null) {
+            return null;
+        }
+
+        return PaymentHistoryDTO.builder()
+                .paymentId(paymentHistory.getPaymentId())
+                .userId(paymentHistory.getUser().getId())
+                .amount(paymentHistory.getAmount())
+                .status(paymentHistory.getStatus())
+                .transactionDate(paymentHistory.getTransactionDate())
                 .build();
     }
 

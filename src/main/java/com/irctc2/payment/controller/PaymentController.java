@@ -3,6 +3,7 @@ package com.irctc2.payment.controller;
 import com.irctc2.booking.dto.CreateBookingRequest;
 import com.irctc2.booking.model.Booking;
 import com.irctc2.booking.repository.BookingRepository;
+import com.irctc2.payment.dto.PaymentHistoryDTO;
 import com.irctc2.payment.model.PaymentHistory;
 import com.irctc2.payment.service.PaymentService;
 import com.irctc2.security.jwt.JwtTokenProvider;
@@ -59,7 +60,15 @@ public class PaymentController {
 
     // Endpoint to get payment history by userId
     @GetMapping("/history")
-    public List<PaymentHistory> getPaymentHistory(@RequestParam Long userId) {
+    public List<PaymentHistoryDTO> getPaymentHistory(@RequestHeader("Authorization") String token) {
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+
+        String email = jwtTokenProvider.getUsernameFromToken(token);
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User with email " + email + " not found"));
+        Long userId = user.getId();
         return paymentService.getPaymentHistory(userId);
     }
 
