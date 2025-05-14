@@ -1,6 +1,7 @@
 package com.irctc2.payment.service;
 
 import com.irctc2.booking.model.Booking;
+import com.irctc2.payment.dto.PaymentHistoryDTO;
 import com.irctc2.payment.model.PaymentHistory;
 import com.irctc2.payment.repository.PaymentHistoryRepository;
 import com.irctc2.user.model.User;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class PaymentService {
@@ -45,8 +47,18 @@ public class PaymentService {
 
 
     // Get Payment History by User ID
-    public List<PaymentHistory> getPaymentHistory(Long userId) {
-        return paymentHistoryRepository.findByUserId(userId);
+    public List<PaymentHistoryDTO> getPaymentHistory(Long userId) {
+        List<PaymentHistory> paymentHistories = paymentHistoryRepository.findByUserId(userId);
+
+        return paymentHistories.stream()
+                .map(paymentHistory -> new PaymentHistoryDTO(
+                        paymentHistory.getPaymentId(),
+                        paymentHistory.getUser().getId(),  // Just the userId, not the whole User object
+                        paymentHistory.getAmount(),
+                        paymentHistory.getStatus(),
+                        paymentHistory.getTransactionDate()  // No booking field included
+                ))
+                .collect(Collectors.toList());
     }
 
     // Get Payment History by Payment ID

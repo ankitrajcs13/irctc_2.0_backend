@@ -1,5 +1,7 @@
 package com.irctc2.booking.dto;
 
+import com.irctc2.payment.dto.PaymentHistoryDTO;
+import com.razorpay.Payment;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -19,5 +21,4 @@ public class BookingResponseDTO {
     private BigDecimal totalFare;
     private String bookingStatus;
     private List<PassengerDTO> passengers;
-
 }

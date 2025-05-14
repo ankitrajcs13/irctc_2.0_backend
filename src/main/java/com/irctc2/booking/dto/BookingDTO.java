@@ -1,6 +1,7 @@
 package com.irctc2.booking.dto;
 
 import com.irctc2.booking.entity.BookingStatus;
+import com.irctc2.payment.dto.PaymentHistoryDTO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -31,6 +32,7 @@ public class BookingDTO {
     private String destinationStation;
     private String travelDuration;
     private List<PassengerDTO> passengers;
+    private PaymentHistoryDTO paymentHistory;
 
     // Getters, setters, and constructor
 }
